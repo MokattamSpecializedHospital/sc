@@ -35,7 +35,7 @@ def recommend_clinic():
             return jsonify({"error": "Server configuration error."}), 500
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-1.0-pro')
 
         # --- تم تحسين هذا الجزء لضمان استجابة JSON سليمة ---
         prompt = f"""
