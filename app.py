@@ -5,22 +5,18 @@ from flask_cors import CORS
 import json
 import base64
 
-# تهيئة تطبيق فلاسك لخدمة الملفات الثابتة من مجلد "static"
 app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
 
-# قائمة العيادات المحدثة بناءً على الجدول الجديد
 CLINICS_LIST = """
 "الباطنة-والجهاز-الهضمي-والكبد", "مسالك", "باطنة-عامة", "غدد-صماء-وسكر", "القلب-والإيكو",
 "السونار-والدوبلكس", "جراحة-التجميل", "عظام", "جلدية-وليزر"
 """
 
-# المسار الخاص بصفحة الموقع الرئيسية
 @app.route('/')
 def serve_index():
     return send_from_directory('static', 'index.html')
 
-# المسار الخاص بتوصية العيادات بناءً على الأعراض
 @app.route("/api/recommend", methods=["POST"])
 def recommend_clinic():
     try:
@@ -35,9 +31,12 @@ def recommend_clinic():
             return jsonify({"error": "Server configuration error."}), 500
 
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.0-pro')
+        
+        model = genai.GenerativeModel(
+            'gemini-1.5-flash',
+            generation_config={"response_mime_type": "application/json"}
+        )
 
-        # --- تم تحسين هذا الجزء لضمان استجابة JSON سليمة ---
         prompt = f"""
         أنت مساعد طبي خبير ومحترف في مستشفى كبير. مهمتك هي تحليل شكوى المريض بدقة واقتراح أفضل عيادتين بحد أقصى من قائمة العيادات المتاحة.
         قائمة معرفات (IDs) العيادات المتاحة هي: [{CLINICS_LIST}]
@@ -57,9 +56,8 @@ def recommend_clinic():
         """
         
         response = model.generate_content(prompt)
-        # تنظيف الرد لضمان أنه JSON صالح
-        cleaned_text = response.text.strip().replace("```json", "").replace("```", "")
-        json_response = json.loads(cleaned_text)
+        
+        json_response = json.loads(response.text)
         return jsonify(json_response)
         
     except Exception as e:
