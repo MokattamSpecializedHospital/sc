@@ -3,6 +3,7 @@ import google.generativeai as genai
 from http.server import BaseHTTPRequestHandler
 import json
 import base64
+google-cloud-aiplatform
 
 # A complete and updated list of clinic IDs (27 specialties)
 # القائمة الكاملة والمحدثة لمعرفات (IDs) العيادات (27 تخصص)
