@@ -1,5 +1,4 @@
 import os
-import google.generativeai as genai
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import json
@@ -12,6 +11,7 @@ from vertexai.generative_models import GenerativeModel, GenerationConfig
 app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
 
+# قائمة العيادات النهائية والمطابقة للواجهة الأمامية
 CLINICS_LIST = """
 "الباطنة-والجهاز-الهضمي-والكبد", "مسالك", "باطنة-عامة", "غدد-صماء-وسكر", "القلب-والإيكو",
 "السونار-والدوبلكس", "جراحة-التجميل", "عظام", "جلدية-وليزر"
@@ -19,11 +19,16 @@ CLINICS_LIST = """
 
 # قم بتهيئة Vertex AI مرة واحدة عند بدء تشغيل التطبيق
 try:
-    vertexai.init(project=os.environ.get("GCP_PROJECT"), location=os.environ.get("GCP_REGION", "europe-west1"))
-    # --- التغيير هنا ---
-    # استخدم نموذجًا أكثر توافرًا مثل "gemini-1.0-pro"
+    # تم تحديد المنطقة بشكل صريح لضمان الاتصال بالخادم الصحيح
+    # الذي تم نشر التطبيق فيه
+    vertexai.init(project=os.environ.get("GCP_PROJECT"), location="us-central1")
+    
+    # استخدام نموذج متوفر بشكل واسع في هذه المنطقة
     global_model = GenerativeModel("gemini-1.0-pro") 
-    print(f"Vertex AI initialized and model {global_model._model_name} loaded.")
+    
+    print(f"Vertex AI initialized successfully in us-central1.")
+    print(f"Model '{global_model._model_name}' loaded.")
+
 except Exception as e:
     print(f"CRITICAL ERROR: Failed to initialize Vertex AI or load model: {e}")
     global_model = None
@@ -69,6 +74,7 @@ def recommend_clinic():
         response = global_model.generate_content(prompt, generation_config=generation_config)
         
         if response.text:
+            # لا حاجة لتنظيف الاستجابة لأننا طلبنا JSON مباشرة
             json_response = json.loads(response.text)
             return jsonify(json_response)
         else:
