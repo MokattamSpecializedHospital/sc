@@ -18,17 +18,15 @@ CLINICS_LIST = """
 """
 
 # قم بتهيئة Vertex AI مرة واحدة عند بدء تشغيل التطبيق
-# PROJECT_ID و LOCATION سيتم الكشف عنهما تلقائيًا في Cloud Run
 try:
     vertexai.init(project=os.environ.get("GCP_PROJECT"), location=os.environ.get("GCP_REGION", "europe-west1"))
-    # تأكد من أن النموذج متاح في هذه المنطقة
-    # يمكنك تبديل النموذج إذا لم يكن gemini-1.5-flash متاحًا
-    # مثال: model_name = "gemini-1.5-flash-001" أو "gemini-1.0-pro"
-    global_model = GenerativeModel("gemini-1.5-flash") # استخدم اسم النموذج مباشرة هنا
-    print(f"Vertex AI initialized and model {global_model._model_id} loaded.")
+    # --- التغيير هنا ---
+    # استخدم نموذجًا أكثر توافرًا مثل "gemini-1.0-pro"
+    global_model = GenerativeModel("gemini-1.0-pro") 
+    print(f"Vertex AI initialized and model {global_model._model_name} loaded.")
 except Exception as e:
     print(f"CRITICAL ERROR: Failed to initialize Vertex AI or load model: {e}")
-    global_model = None # تأكد من أن النموذج ليس متاحًا إذا فشلت التهيئة
+    global_model = None
 
 @app.route('/')
 def serve_index():
@@ -45,15 +43,9 @@ def recommend_clinic():
         if not symptoms:
             return jsonify({"error": "Missing symptoms"}), 400
         
-        # لا حاجة لـ API_KEY هنا إذا كنت تستخدم Vertex AI SDK داخل Cloud Run
-        # حيث يتم التعامل مع المصادقة عبر Service Account الافتراضي
-        
-        # لا داعي لإعادة تهيئة النموذج في كل طلب
-        # model = GenerativeModel('gemini-1.5-flash')
-
         generation_config = GenerationConfig(
             response_mime_type="application/json",
-            temperature=0.7, # يمكنك ضبط درجة الحرارة لتحكم في عشوائية الاستجابة
+            temperature=0.7,
         )
 
         prompt = f"""
@@ -76,7 +68,6 @@ def recommend_clinic():
         
         response = global_model.generate_content(prompt, generation_config=generation_config)
         
-        # تأكد من أن الاستجابة تحتوي على نص قبل محاولة تحليلها
         if response.text:
             json_response = json.loads(response.text)
             return jsonify(json_response)
@@ -86,9 +77,7 @@ def recommend_clinic():
         
     except Exception as e:
         print(f"ERROR in /api/recommend: {str(e)}")
-        # ارجع رسالة خطأ أكثر تفصيلاً للمساعدة في Debugging
         return jsonify({"error": f"An internal server error occurred: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
-
